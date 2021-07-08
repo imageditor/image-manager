@@ -10,4 +10,4 @@ minimized_image (bynary)
 
 2. Upload images, change status
 3. Select original images
-4. Select transformed images by original filename
+4. Select transformed images by parent_image
