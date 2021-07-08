@@ -6,7 +6,7 @@
 > - transformation (original/grayscale) in future it may be different tables
 > - parent_image (original_filename/original_image_id)
 > - new_filename (uuid.extension)
-> - minimized_image (bynary)
+> - minimized_image (binary)
 
 2. Upload images, change status
 3. Select original images
