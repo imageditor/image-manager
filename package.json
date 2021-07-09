@@ -1,0 +1,32 @@
+{
+  "name": "image-manager",
+  "version": "1.0.0",
+  "description": "Upload, transform, retrive images. Node.js, Express, MongoDB",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imageditor/image-manager.git"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "rest",
+    "api",
+    "mongoose",
+    "mongodb"
+  ],
+  "author": "Iv-Alex",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/imageditor/image-manager/issues"
+  },
+  "homepage": "https://github.com/imageditor/image-manager#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "mongoose": "^5.13.2"
+  }
+}
