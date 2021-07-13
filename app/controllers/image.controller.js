@@ -1,37 +1,149 @@
 const db = require("../models");
 const Image = db.images;
+const formData = require('form-data');
 
+const lambdaController = require('./lambda.controller');
+
+const { UPLOAD_TYPE } = require("../config/lambda.config");
+const { v4: uuidv4 } = require('uuid');
 // Create and Save a new Image
-exports.create = (req, res) => {
-    // Validate request
-    if (!req.body.parentImage) {
-        res.status(400).send({ message: "Content can not be empty!" });
-        return;
+exports.create = async (req, res) => {
+    const {
+        projectId = null
+    } = req.body;
+
+    const image = req.file;
+
+    if (!projectId || !image) {
+        res.status = 400;
+        return res.json({
+            status: 'projectId and image required in request body',
+            payload: {
+                projectId,
+                image
+            }
+        });
     }
 
-    // Create a Image
-    const image = new Image({
-        projectId: "req.body.projectId",
-        parentImage: req.body.parentImage,
-        newFilename: "newFilename"///////////////////////////////////////////////////req.body.parentImage,
-    });
+    const { buffer: imageBuffer, originalname = null } = image;
+    const extension = originalname ? originalname.split('.')[1] : '';
+    const newId = `${uuidv4()}.${extension}`;
 
-    // Save Image in the database
-    image
-        .save(image)
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
-            res.status(500).send({
-                message:
-                    err.message || "Some error occurred while creating the Image."
-            });
+    const headers = { 
+        "Content-Type": "application/octet-stream"
+    };
+
+    console.log(image);
+    console.log(`controller start()`);
+
+    const result = await lambdaController.request(UPLOAD_TYPE + `/${newId}`, imageBuffer, headers);
+
+    if (result.status != 'error') {
+        const image = new Image({
+            projectId: projectId,
+            newFilename: newId,
+            status: 'recieved',
         });
-
-    // upload image and update record about it
-
+        try {
+            const imageData = await image.save()
+            res.status = 200;
+            res.json({
+                status: 'ok',
+                payload: imageData
+            });
+        } catch (err) {
+            res.status = 500;
+            res.json({
+                status: 'error',
+                payload: {
+                    message: 'Something went wrong when status saving into datebase',
+                    data: err
+                }
+            })
+        }
+    } else {
+        res.status = 500;
+        res.json({
+            ststus: 'error',
+            payload: {
+                message: `Something went wrong with starting processor ${processingType}`,
+                data: result.payload.data
+            }
+        });
+        throw new Error(result.payload.message);
+    }
 };
+
+exports.transform = async (req, res) => {
+    const {
+        id = null,
+        projectId = null,
+        processingType = null,
+    } = req.body;
+
+    if (!id || !projectId || !processingType) {
+        res.status = 404;
+        res.json({
+            status: 'id, projectId and processingType fields required in request body',
+            payload: {
+                id,
+                projectId,
+                processingType
+            }
+        })
+    }
+
+    const extension = id.split('.')[1];
+    const newId = `${uuidv4()}.${extension}`;
+
+    console.log(`controller start()`);
+
+    const processingParams = {
+        projectId,
+        id,
+        processingType,
+        newId
+    };
+
+    const result = lambdaController.invoke(processingType, processingParams);
+
+    if (result.status != 'error') {
+        const image = new Image({
+            projectId: projectId,
+            newFilename: newId,
+            parentImage: id ?? null,
+            status: 'recieved',
+            transformation: processingType
+        });
+        try {
+            const imageData = await image.save()
+            res.status = 200;
+            res.json({
+                status: 'ok',
+                payload: imageData
+            });
+        } catch (err) {
+            res.status = 500;
+            res.json({
+                status: 'error',
+                payload: {
+                    message: 'Something went wrong when status saving into datebase',
+                    data: err
+                }
+            })
+        }
+    } else {
+        res.status = 500,
+            res.json({
+                ststus: 'error',
+                payload: {
+                    message: `Something went wrong with starting processor ${processingType}`,
+                    data: result.payload.data
+                }
+            });
+        throw new Error(result.payload.message);
+    }
+}
 
 // Retrieve all Images from the database.
 exports.findAll = (req, res) => {

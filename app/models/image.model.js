@@ -5,11 +5,11 @@ module.exports = mongoose => {
             projectId: String,
             status:{
                 type: String,
-                default: "waiting"
+                default: "recieved"
             },
             transformation: {
                 type: String,
-                default: "original"
+                default: "upload"
             },
             parentImage: String,
             newFilename: String,

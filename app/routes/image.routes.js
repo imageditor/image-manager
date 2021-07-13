@@ -1,10 +1,13 @@
+const upload = require("multer")();
+
 module.exports = app => {
     const images = require("../controllers/image.controller.js");
+    const processing = require("../controllers/processing.controller.js");
 
     let router = require("express").Router();
 
     // Create a new Image
-    router.post("/", images.create);
+    router.post("/", upload.single('image'), images.create);
 
     // Retrieve all Images
     router.get("/", images.findAll);
@@ -20,6 +23,8 @@ module.exports = app => {
 
     // Delete all Images
     router.delete("/", images.deleteAll);
+
+    router.post("/transform", images.transform);
 
     // Grayscale image with id
     // router.post();
