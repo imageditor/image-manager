@@ -1,0 +1,1 @@
+docker build -t 126720073631.dkr.ecr.us-west-2.amazonaws.com/im . && docker push 126720073631.dkr.ecr.us-west-2.amazonaws.com/im

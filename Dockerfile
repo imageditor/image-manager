@@ -7,7 +7,9 @@ COPY package*.json ./
 RUN npm install
 
 # Copy source
-COPY src ./src
+COPY . ./
+
+
 
 # Expose port 3000
 EXPOSE 80

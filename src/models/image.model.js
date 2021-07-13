@@ -12,7 +12,7 @@ module.exports = mongoose => {
                 default: "upload"
             },
             parentImage: String,
-            fileName: String,
+            newFilename: String,
             minimizedImage:
             {
                 data: Buffer,

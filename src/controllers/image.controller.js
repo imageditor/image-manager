@@ -2,48 +2,11 @@ const db = require("../models");
 const Image = db.images;
 const formData = require('form-data');
 
-//const lambdaController = require('./lambda.controller');
+const lambdaController = require('./lambda.controller');
 
-//const { UPLOAD_TYPE } = require("../config/lambda.config");
+const { UPLOAD_TYPE } = require("../config/lambda.config");
 const { v4: uuidv4 } = require('uuid');
 // Create and Save a new Image
-exports.create = async (req, res) => {
-    const {
-        projectId = null,
-        parentImage = 'original'
-    } = req.body;
-
-//    const newId = `${uuidv4()}.${extension}`;
-    const newId = `${uuidv4()}.jpeggg`;
-
-    console.log(newId);
-        const image = new Image({
-            projectId: projectId,
-            parentImage: parentImage,
-            fileName: newId,
-            status: 'recieved',
-        });
-        try {
-            const imageData = await image.save()
-            res.status = 200;
-            res.json({
-                status: 'ok',
-                payload: imageData
-            });
-        } catch (err) {
-            res.status = 500;
-            res.json({
-                status: 'error',
-                payload: {
-                    message: 'Something went wrong when status saving into datebase',
-                    data: err
-                }
-            })
-        }
-    
-};
-
-/*
 exports.create = async (req, res) => {
     const {
         projectId = null
@@ -181,7 +144,7 @@ exports.transform = async (req, res) => {
         throw new Error(result.payload.message);
     }
 }
-*/
+
 // Retrieve all Images from the database.
 exports.findAll = (req, res) => {
     const projectId = req.query.projectid;
@@ -236,6 +199,37 @@ exports.update = (req, res) => {
             } else res.send({ message: "Image was updated successfully." });
         })
         .catch(err => {
+            res.status(500).send({
+                message: "Error updating Image with id=" + id
+            });
+        });
+};
+
+exports.updateStatus = (req, res) => {
+    if (!req.body || !req.body.id || !req.body.status) {
+        return res.status(400).send({
+            message: "Invalid status update params"
+        });
+    }
+
+    const filter = {
+        newFilename: req.body.id
+    }
+
+    const update = {
+        status: req.body.status
+    }
+
+    Image.findOneAndUpdate(filter, update, { useFindAndModify: false })
+        .then(data => {
+            if (!data) {
+                res.status(404).send({
+                    message: `Cannot update Image ${req.body.id}. Maybe Image was not found!`
+                });
+            } else res.send({ message: "Image was updated successfully." });
+        })
+        .catch(err => {
+            console.log(err)
             res.status(500).send({
                 message: "Error updating Image with id=" + id
             });

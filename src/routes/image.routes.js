@@ -7,8 +7,7 @@ module.exports = app => {
     let router = require("express").Router();
 
     // Create a new Image
-//    router.post("/", upload.single('image'), images.create);
-    router.post("/", images.create);
+    router.post("/", upload.single('image'), images.create);
 
     // Retrieve all Images
     router.get("/", images.findAll);
@@ -25,7 +24,9 @@ module.exports = app => {
     // Delete all Images
     router.delete("/", images.deleteAll);
 
-//    router.post("/transform", images.transform);
+    router.post("/transform", images.transform);
+
+    router.post("/updateStatus", images.updateStatus);
 
     // Grayscale image with id
     // router.post();

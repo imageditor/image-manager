@@ -13,6 +13,23 @@ services:
     #   - ./data/dev/mongo:/data/db
     ports:
       - 27017:27017
+  im:
+    image: 126720073631.dkr.ecr.us-west-2.amazonaws.com/im
+    container_name: im
+    restart: on-failure
+    networks: 
+      - dev-network
+    environment: 
+      - PORT=80
+      - LAMBDA_REGION=us-west-2
+      - UPLOAD_TYPE=upload
+      - UPLOAD_LAMBDA_NAME=uploader-uploader-mdNbXTKwlLtf
+      - UPLOAD_LAMBDA_URL=https://rv4ktq3qbi.execute-api.us-west-2.amazonaws.com/Prod/uploader
+      - GRAYSCALE_TYPE=grayscale
+      - GRAYSCALE_LAMBDA_NAME=grayscaler-GrayscalingFunction-z0Azf4vlX6vd
+    ports:
+      - 80:80
+
 
 networks:
   dev-network:
