@@ -1,13 +1,13 @@
-FROM node:14
+FROM node:14-alpine
 
-# Add package file
-COPY package*.json ./
+# Copy source
+COPY . ./
+# # Add package file
+# COPY package*.json ./
 
 # Install deps
 RUN npm install
 
-# Copy source
-COPY . ./
 
 
 

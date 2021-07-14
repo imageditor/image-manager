@@ -30,7 +30,7 @@ exports.request = async (type, data, headers) => {
     return body;
 }
 
-exports.invoke = (processingType, data) => {
+exports.invoke = async (processingType, data, callback = lambdaCallback) => {
     console.log(`lambda invoke()`)
     const lambdaParams = {
         FunctionName: mapTypeToLambdaName(processingType), // the lambda function we are going to invoke
@@ -41,9 +41,9 @@ exports.invoke = (processingType, data) => {
 
     // console.log(lambdaParams)
 
-    lambda.invoke(
+    await lambda.invoke(
         lambdaParams,
-        lambdaCallback
+        callback
     )
 
     return {

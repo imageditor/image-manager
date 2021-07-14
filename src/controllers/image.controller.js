@@ -29,48 +29,72 @@ exports.create = async (req, res) => {
     const extension = originalname ? originalname.split('.')[1] : '';
     const newId = `${uuidv4()}.${extension}`;
 
-    const headers = { 
+    const headers = {
         "Content-Type": "application/octet-stream"
     };
 
     console.log(image);
     console.log(`controller start()`);
 
-    const result = await lambdaController.request(UPLOAD_TYPE + `/${newId}`, imageBuffer, headers);
+    // Save status recieved 
+    const imageModel = new Image({
+        projectId: projectId,
+        newFilename: newId,
+        status: 'in_progress',
+    });
 
-    if (result.status != 'error') {
-        const image = new Image({
-            projectId: projectId,
-            newFilename: newId,
-            status: 'recieved',
-        });
-        try {
-            const imageData = await image.save()
-            res.status = 200;
-            res.json({
-                status: 'ok',
-                payload: imageData
-            });
-        } catch (err) {
+    const imageData = await imageModel.save();
+
+    try {
+        const result = await lambdaController.request(UPLOAD_TYPE + `/${newId}`, imageBuffer, headers);
+        // If lambda returns without error
+        if (result.status != 'error') {
+            // Save status into db
+            try {
+                imageData.status = 'success';
+                await imageData.save();
+                res.status = 200;
+                res.json({
+                    status: 'ok',
+                    payload: imageData
+                });
+            } catch (err) {
+                imageData.status = 'error';
+                await imageData.save();
+                res.status = 500;
+                res.json({
+                    status: 'error',
+                    payload: {
+                        message: 'Something went wrong when status saving into datebase',
+                        data: err
+                    }
+                })
+            }
+        } else {
+            imageData.status = 'error';
+            await imageData.save();
             res.status = 500;
             res.json({
-                status: 'error',
+                ststus: 'error',
                 payload: {
-                    message: 'Something went wrong when status saving into datebase',
-                    data: err
+                    message: `Something went wrong when we upload image into datastore`,
+                    data: result.payload.data
                 }
-            })
+            });
+            throw new Error(result.payload.message);
         }
-    } else {
+    } catch (err) {
+        imageData.status = 'error';
+        await imageData.save();
         res.status = 500;
         res.json({
             ststus: 'error',
             payload: {
-                message: `Something went wrong with starting processor ${processingType}`,
-                data: result.payload.data
+                message: `Something went wrong when we starting uploading`,
+                data: err
             }
         });
-        throw new Error(result.payload.message);
+        throw new Error(err);
     }
 };
 
@@ -96,6 +120,16 @@ exports.transform = async (req, res) => {
     const extension = id.split('.')[1];
     const newId = `${uuidv4()}.${extension}`;
 
+    const imageModel = new Image({
+        projectId: projectId,
+        newFilename: newId,
+        parentImage: id ?? null,
+        status: 'in_progress',
+        transformation: processingType
+    });
+
+    const imageData = await imageModel.save();
+
     console.log(`controller start()`);
 
     const processingParams = {
@@ -105,43 +139,56 @@ exports.transform = async (req, res) => {
         newId
     };
 
-    const result = lambdaController.invoke(processingType, processingParams);
-
-    if (result.status != 'error') {
-        const image = new Image({
-            projectId: projectId,
-            newFilename: newId,
-            parentImage: id ?? null,
-            status: 'recieved',
-            transformation: processingType
-        });
-        try {
-            const imageData = await image.save()
-            res.status = 200;
-            res.json({
-                status: 'ok',
-                payload: imageData
-            });
-        } catch (err) {
-            res.status = 500;
-            res.json({
-                status: 'error',
-                payload: {
-                    message: 'Something went wrong when status saving into datebase',
-                    data: err
+    try {
+        lambdaController.invoke(processingType, processingParams, async (err, result) => {
+            console.log(`result`, result)
+            if (!err && !result.FunctionError) {
+                try {
+                    imageData.status = 'success';
+                    await imageData.save();
+                    res.status = 200;
+                    res.json({
+                        status: 'ok',
+                        payload: imageData
+                    });
+                } catch (err) {
+                    imageData.status = 'error';
+                    await imageData.save()
+                    res.status = 500;
+                    res.json({
+                        status: 'error',
+                        payload: {
+                            message: 'Something went wrong when status saving into datebase',
+                            data: err
+                        }
+                    })
                 }
-            })
-        }
-    } else {
+            } else {
+                imageData.status = 'error';
+                await imageData.save();
+                res.status = 500,
+                    res.json({
+                        ststus: 'error',
+                        payload: {
+                            message: `Something went wrong when we ${processingType} this image`,
+                            data: result
+                        }
+                    });
+                throw new Error(err);
+            }
+        });
+    } catch (err) {
+        imageData.status = 'error';
+        await imageData.save();
         res.status = 500,
             res.json({
                 ststus: 'error',
                 payload: {
                     message: `Something went wrong with starting processor ${processingType}`,
-                    data: result.payload.data
+                    data: err
                 }
             });
-        throw new Error(result.payload.message);
+        throw new Error(err);
     }
 }
 
@@ -152,6 +199,9 @@ exports.findAll = (req, res) => {
     console.log(condition);
 
     Image.find(condition)
+        .sort({
+            createdAt: -1
+        })
         .then(data => {
             res.send(data);
         })
